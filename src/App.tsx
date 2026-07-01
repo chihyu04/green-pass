@@ -14,27 +14,27 @@ const MOCK_USER = {
 const MOCK_ARTICLES = [
   { 
     id: 1, 
+    title: '循環標誌正式亮相 7月開放申請 「綠色蝸牛」外型象徵一步步爬向永續未來', 
+    date: '2026-06-15', 
+    readTime: '4 min', 
+    image: 'bg-green-100',
+    link: 'https://e-info.org.tw/node/243546' 
+  },
+  { 
+    id: 2, 
     title: '循環袋、循環箱真的環保？一篇看懂配客嘉綠色物流：PLUS循環圈', 
-    date: '2024-04-15', 
+    date: '2024-04-25', 
     readTime: '6 min', 
     image: 'bg-emerald-100',
     link: 'https://package-plus.com/2024/04/package-circular-system/' 
   },
   { 
-    id: 2, 
+    id: 3, 
     title: '為什麼要減塑？瞭解2大減塑好處與企業作為，阻止塑膠污染空氣和食物', 
-    date: '2026-05-28', 
+    date: '2023-08-16', 
     readTime: '8 min', 
     image: 'bg-teal-100',
     link: 'https://package-plus.com/2023/08/2-reasons-to-reduce-plastic-waste/' 
-  },
-  { 
-    id: 3, 
-    title: '循環標誌正式亮相 7月開放申請 「綠色蝸牛」外型象徵一步步爬向永續未來', 
-    date: '2026-05-15', 
-    readTime: '4 min', 
-    image: 'bg-green-100',
-    link: 'https://e-info.org.tw/node/243546' 
   },
 ];
 
