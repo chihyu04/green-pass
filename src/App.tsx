@@ -8,7 +8,6 @@ import {
   MapPin,
   Store,
   Clock,
-  //CreditCard,
   BookOpen,
   ArrowRightLeft,
   X,
