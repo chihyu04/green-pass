@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { 
   Home, Map as MapIcon, Gift, User, Leaf, MapPin, 
   Store, Clock, CreditCard, BookOpen, ArrowRightLeft,
-  X, ExternalLink, Ticket, CheckCircle2, QrCode, ChevronLeft
+  X, ExternalLink, Ticket, CheckCircle2, QrCode, ChevronLeft,
+  Shirt, Package, Wallet, ShoppingBag, History, AlertCircle
 } from 'lucide-react';
 
 // --- Mock Data (靜態模擬資料) ---
@@ -62,6 +63,43 @@ const MOCK_HISTORY = {
     { id: 'T1002', date: '2026-05-22 18:40', store: '無包裝商店 永和店', item: 'B型循環購物袋', earnedPoints: 15 },
   ]
 };
+
+// --- 全新：洗衣店專屬模擬資料 ---
+const MOCK_LAUNDRY_DATA = [
+  {
+    id: 'L1',
+    name: '衣級洗衣坊 (永和店)',
+    balance: 500,
+    storePoints: 120,
+    unreturnedBags: 1, 
+    lastWashDate: '2026-06-25',
+    currentOrder: {
+      id: 'W-20260702-01',
+      status: '待取件', // 狀態包含：'清洗中', '包裝中', '待取件', '完成取件'
+      items: [
+        { id: 'C001', name: '冬季羊毛大衣' },
+        { id: 'C002', name: '法蘭絨襯衫' },
+        { id: 'C003', name: '羽絨外套' }
+      ]
+    },
+    history: [
+      { date: '2026-05-10', desc: '一般衣物水洗 5 件', cost: 350 },
+      { date: '2026-04-22', desc: '西裝乾洗 2 件', cost: 400 },
+    ]
+  },
+  {
+    id: 'L2',
+    name: '淨白洗衣 (頂溪店)',
+    balance: 150,
+    storePoints: 30,
+    unreturnedBags: 0,
+    lastWashDate: '2026-03-15',
+    currentOrder: null, // 目前無送洗訂單
+    history: [
+      { date: '2026-03-15', desc: '床單被套組', cost: 200 }
+    ]
+  }
+];
 
 // --- 共用型別定義 ---
 interface ViewProps {
@@ -132,7 +170,11 @@ const HomeView = ({ setActiveTab, points, showModal }: ViewProps) => (
       </h2>
       <div className="flex flex-col gap-4">
         {MOCK_ARTICLES.map(article => (
-          <div key={article.id} onClick={() => window.open(article.link, '_blank')}className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex cursor-pointer hover:shadow-md transition active:scale-[0.98]">
+          <div 
+            key={article.id} 
+            onClick={() => window.open(article.link, '_blank')}
+            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex cursor-pointer hover:shadow-md transition active:scale-[0.98]"
+          >
             <div className={`w-24 ${article.image} flex items-center justify-center`}><Leaf className="text-white/50" size={32} /></div>
             <div className="p-4 flex-1">
               <h3 className="font-semibold text-gray-800 text-sm mb-2 line-clamp-2">{article.title}</h3>
@@ -160,7 +202,6 @@ const MapView = ({ showModal }: ViewProps) => {
         <p className="text-xs text-gray-500 mt-1">尋找您附近的合作據點</p>
       </div>
       
-      {/* 擬真地圖背景 */}
       <div className="absolute inset-0 z-0 opacity-40 pointer-events-none" 
            style={{ 
              backgroundImage: 'linear-gradient(#d1d5db 2px, transparent 2px), linear-gradient(90deg, #d1d5db 2px, transparent 2px)', 
@@ -169,7 +210,6 @@ const MapView = ({ showModal }: ViewProps) => {
            }}>
       </div>
       
-      {/* 動態渲染地圖標記 */}
       {MOCK_LOCATIONS.map(loc => (
         <div 
           key={loc.id}
@@ -285,7 +325,6 @@ const OffersView = ({ points, setPoints, redeemedItems, setRedeemedItems, setAct
   );
 };
 
-// --- 全新獨立的「已兌換清單」畫面 ---
 const RedeemedListView = ({ setActiveTab, redeemedItems, showModal }: ViewProps) => (
   <div className="pb-24 animate-in slide-in-from-right-8 duration-300 h-full flex flex-col bg-gray-50">
     <div className="bg-white px-4 pt-8 pb-4 shadow-sm z-10 sticky top-0 flex items-center gap-3">
@@ -329,9 +368,142 @@ const RedeemedListView = ({ setActiveTab, redeemedItems, showModal }: ViewProps)
   </div>
 );
 
-// --- 會員中心 ---
-const MemberCenterView = ({ showModal }: ViewProps) => {
+// --- 全新：洗衣服務進度與資訊畫面 ---
+const LaundryServiceView = ({ setActiveTab }: ViewProps) => {
+  const [selectedStoreId, setSelectedStoreId] = useState(MOCK_LAUNDRY_DATA[0].id);
+  const storeData = MOCK_LAUNDRY_DATA.find(s => s.id === selectedStoreId);
+
+  const PROGRESS_STEPS = ['清洗中', '包裝中', '待取件', '完成取件'];
+  const currentStepIndex = storeData?.currentOrder ? PROGRESS_STEPS.indexOf(storeData.currentOrder.status) : -1;
+
+  return (
+    <div className="pb-24 animate-in slide-in-from-right-8 duration-300 h-full flex flex-col bg-gray-50">
+      {/* Header */}
+      <div className="bg-white px-4 pt-8 pb-4 shadow-sm z-10 sticky top-0 flex items-center gap-3">
+        <button onClick={() => setActiveTab('member')} className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition active:scale-95">
+          <ChevronLeft size={24} />
+        </button>
+        <h1 className="text-xl font-bold text-gray-800">洗衣服務專區</h1>
+      </div>
+
+      <div className="p-6 flex-1 overflow-y-auto">
+        {/* 店家選擇器 */}
+        <div className="mb-6">
+          <label className="text-xs font-bold text-gray-500 mb-2 block">選擇合作洗衣店</label>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+            {MOCK_LAUNDRY_DATA.map(store => (
+              <button
+                key={store.id}
+                onClick={() => setSelectedStoreId(store.id)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors border ${selectedStoreId === store.id ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+              >
+                {store.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {storeData && (
+          <div className="space-y-4 animate-in fade-in duration-300">
+            
+            {/* 儲值金與配客點卡片 */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gradient-to-br from-blue-50 to-white p-4 rounded-2xl border border-blue-100 shadow-sm flex flex-col">
+                <span className="text-xs font-medium text-blue-600 mb-1 flex items-center gap-1"><Wallet size={14}/> 店內儲值金</span>
+                <span className="text-2xl font-bold text-gray-800">${storeData.balance}</span>
+              </div>
+              <div className="bg-gradient-to-br from-emerald-50 to-white p-4 rounded-2xl border border-emerald-100 shadow-sm flex flex-col">
+                <span className="text-xs font-medium text-emerald-600 mb-1 flex items-center gap-1"><Leaf size={14}/> 獲得配客點</span>
+                <span className="text-2xl font-bold text-gray-800">{storeData.storePoints} <span className="text-sm font-normal text-gray-500">pt</span></span>
+              </div>
+            </div>
+
+            {/* 循環袋未歸還提醒 */}
+            {storeData.unreturnedBags > 0 && (
+              <div className="bg-orange-50 border border-orange-200 p-4 rounded-2xl flex items-start gap-3 shadow-sm">
+                <AlertCircle className="text-orange-500 shrink-0 mt-0.5" size={20} />
+                <div>
+                  <h4 className="text-sm font-bold text-orange-800">未歸還循環衣袋提醒</h4>
+                  <p className="text-xs text-orange-600 mt-1">您目前有 <strong>{storeData.unreturnedBags} 個</strong> 循環衣袋尚未歸還，下次送洗時記得帶回喔！</p>
+                </div>
+              </div>
+            )}
+
+            {/* 當次送洗進度 */}
+            <h3 className="font-bold text-gray-800 mt-6 mb-3 flex items-center gap-2"><Package size={18} className="text-blue-600"/> 當次送洗訂單</h3>
+            {storeData.currentOrder ? (
+              <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                  <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">#{storeData.currentOrder.id}</span>
+                  <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">{storeData.currentOrder.status}</span>
+                </div>
+                
+                {/* 視覺化進度條 */}
+                <div className="relative flex justify-between items-center mb-8">
+                  <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-100 -translate-y-1/2 rounded-full z-0"></div>
+                  <div className="absolute top-1/2 left-0 h-1 bg-blue-500 -translate-y-1/2 rounded-full z-0 transition-all duration-500" style={{ width: `${(currentStepIndex / 3) * 100}%` }}></div>
+                  
+                  {PROGRESS_STEPS.map((step, index) => {
+                    const isActive = index <= currentStepIndex;
+                    const isCurrent = index === currentStepIndex;
+                    return (
+                      <div key={step} className="relative z-10 flex flex-col items-center gap-2">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${isActive ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-gray-200 text-gray-400'}`}>
+                          {isActive ? '✓' : index + 1}
+                        </div>
+                        <span className={`text-[10px] absolute -bottom-5 whitespace-nowrap font-medium ${isCurrent ? 'text-blue-600' : 'text-gray-400'}`}>{step}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* 清潔衣物明細 */}
+                <div className="bg-gray-50 rounded-xl p-3 mt-4">
+                  <p className="text-xs font-bold text-gray-600 mb-2 border-b border-gray-200 pb-2">清潔衣物明細</p>
+                  <ul className="space-y-2">
+                    {storeData.currentOrder.items.map(item => (
+                      <li key={item.id} className="flex justify-between items-center text-sm">
+                        <span className="text-gray-700 flex items-center gap-2"><Shirt size={14} className="text-gray-400"/> {item.name}</span>
+                        <span className="text-xs text-gray-400 font-mono">{item.id}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm text-center">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-300">
+                  <ShoppingBag size={32} />
+                </div>
+                <p className="text-gray-500 text-sm font-medium">目前沒有進行中的送洗訂單</p>
+              </div>
+            )}
+
+            {/* 歷史紀錄 */}
+            <h3 className="font-bold text-gray-800 mt-6 mb-3 flex items-center gap-2"><History size={18} className="text-gray-500"/> 歷次清洗紀錄</h3>
+            <div className="space-y-3">
+              {storeData.history.map((record, idx) => (
+                <div key={idx} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex justify-between items-center">
+                  <div>
+                    <p className="text-sm font-bold text-gray-700">{record.desc}</p>
+                    <p className="text-xs text-gray-400 mt-1">{record.date}</p>
+                  </div>
+                  <span className="text-sm font-bold text-gray-600">${record.cost}</span>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- 會員中心主頁 ---
+const MemberCenterView = ({ setActiveTab, showModal }: ViewProps) => {
   const [historyTab, setHistoryTab] = useState('rentals');
+  
   return (
     <div className="pb-24 animate-in fade-in duration-300">
       <div className="bg-gray-50 px-6 pt-10 pb-6 mb-2">
@@ -358,7 +530,23 @@ const MemberCenterView = ({ showModal }: ViewProps) => {
              </button>
           </div>
         </div>
+
+        {/* 全新加入：洗衣服務專區入口按鈕 */}
+        <button 
+          onClick={() => setActiveTab('laundry')}
+          className="mt-6 w-full bg-blue-600 text-white rounded-2xl p-4 shadow-md shadow-blue-200 flex items-center justify-between hover:bg-blue-700 transition active:scale-[0.98]"
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 p-2 rounded-xl text-white"><Shirt size={24} /></div>
+            <div className="text-left">
+              <h3 className="font-bold text-lg leading-tight">洗衣服務專區</h3>
+              <p className="text-blue-100 text-xs mt-1">查看清洗進度、儲值金與未歸還衣袋</p>
+            </div>
+          </div>
+          <ChevronLeft size={20} className="rotate-180 opacity-80" />
+        </button>
       </div>
+
       <div className="px-6">
         <h2 className="text-lg font-bold text-gray-800 mb-4">使用紀錄</h2>
         <div className="flex gap-6 border-b border-gray-200 mb-6">
@@ -409,7 +597,6 @@ export default function App() {
   const [points, setPoints] = useState(50);
   const [redeemedItems, setRedeemedItems] = useState<any[]>([]);
   
-  // Custom Modal State
   const [modalConfig, setModalConfig] = useState<ModalConfig | null>(null);
 
   const sharedProps = { 
@@ -428,6 +615,7 @@ export default function App() {
       case 'offers': return <OffersView {...sharedProps} />;
       case 'redeemedList': return <RedeemedListView {...sharedProps} />;
       case 'member': return <MemberCenterView {...sharedProps} />;
+      case 'laundry': return <LaundryServiceView {...sharedProps} />;
       default: return <HomeView {...sharedProps} />;
     }
   };
@@ -436,12 +624,11 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col md:flex-row-reverse md:justify-end selection:bg-emerald-200">
       <div className="flex-1 w-full md:max-w-md md:mx-auto relative flex flex-col h-screen overflow-hidden bg-gray-50 md:border-x md:border-gray-200 md:shadow-lg">
         
-        {/* 主要內容區 */}
         <div className="flex-1 overflow-y-auto no-scrollbar relative">
           {renderView()}
         </div>
 
-        {/* --- 自訂的彈跳視窗 (Modal) Overlay --- */}
+        {/* --- 自訂的彈跳視窗 (Modal) --- */}
         {modalConfig && (
           <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-6 animate-in fade-in duration-200">
             <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
@@ -480,7 +667,6 @@ export default function App() {
         )}
       </div>
 
-      {/* 底部導覽列 */}
       <nav className="fixed md:static bottom-0 w-full md:w-64 bg-white border-t md:border-t-0 md:border-r border-gray-200 pb-safe z-50 md:h-screen md:pt-8 md:pb-8 flex md:flex-col">
         <div className="hidden md:block px-8 mb-10 text-emerald-600 font-bold text-2xl">GreenLink</div>
         <div className="flex md:flex-col justify-around md:justify-start items-center md:items-start h-16 md:h-auto px-2 md:px-4 md:space-y-4 w-full">
@@ -491,8 +677,7 @@ export default function App() {
             { id: 'member', icon: User, label: '會員' },
           ].map((tab) => {
             const Icon = tab.icon;
-            // 讓「已兌換清單」視窗時，優惠圖示依然保持 active 狀態
-            const isActive = activeTab === tab.id || (activeTab === 'redeemedList' && tab.id === 'offers');
+            const isActive = activeTab === tab.id || (activeTab === 'redeemedList' && tab.id === 'offers') || (activeTab === 'laundry' && tab.id === 'member');
             return (
               <button 
                 key={tab.id}
