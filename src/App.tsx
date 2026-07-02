@@ -181,17 +181,17 @@ const MOCK_LAUNDRY_DATA = [
         {
           id: 'C-0001',
           name: '冬季羊毛大衣',
-          price: 180,
+          price: 450,
         },
         {
           id: 'C-0002',
           name: '法蘭絨襯衫',
-          price: 120,
+          price: 100,
         },
         {
           id: 'C-0003',
           name: '羽絨外套',
-          price: 200,
+          price: 450,
         },
       ],
     },
@@ -199,12 +199,12 @@ const MOCK_LAUNDRY_DATA = [
       {
         date: '2026-05-10',
         desc: '一般衣物水洗 5 件',
-        cost: 350,
+        cost: 500,
       },
       {
         date: '2026-04-22',
         desc: '西裝乾洗 2 件',
-        cost: 400,
+        cost: 500,
       },
     ],
   },
@@ -220,7 +220,7 @@ const MOCK_LAUNDRY_DATA = [
       {
         date: '2026-03-15',
         desc: '床單被套組',
-        cost: 200,
+        cost: 500,
       },
     ],
   },
