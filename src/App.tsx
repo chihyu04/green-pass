@@ -815,11 +815,8 @@ const LaundryServiceView = ({ setActiveTab, showModal }: ViewProps) => {
             <div>
               <p className="text-sm text-emerald-50">合作洗衣服務</p>
               <h2 className="text-xl font-bold">
-                查看清洗進度與循環衣袋
+                衣袋使用說明與常見問題
               </h2>
-              <p className="text-xs text-emerald-50 mt-1">
-                點我查看衣袋使用說明與常見問題
-              </p>
             </div>
           </div>
 
