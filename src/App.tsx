@@ -164,8 +164,40 @@ const MOCK_HISTORY = {
   ],
 };
 
-// --- 洗衣店專屬模擬資料 ---
-const MOCK_LAUNDRY_DATA = [
+// // --- 洗衣店專屬模擬資料 ---
+type LaundryOrderStatus = '清洗中' | '包裝中' | '待取件' | '完成取件';
+
+interface LaundryItem {
+  id: string;
+  name: string;
+  price: number;
+}
+
+interface LaundryOrder {
+  id: string;
+  status: LaundryOrderStatus;
+  bagCode: string;
+  items: LaundryItem[];
+}
+
+interface LaundryHistoryRecord {
+  date: string;
+  desc: string;
+  cost: number;
+}
+
+interface LaundryStore {
+  id: string;
+  name: string;
+  balance: number;
+  storePoints: number;
+  unreturnedBagCodes: string[];
+  lastWashDate: string;
+  currentOrder: LaundryOrder | null;
+  history: LaundryHistoryRecord[];
+}
+
+const MOCK_LAUNDRY_DATA: LaundryStore[] = [
   {
     id: 'L1',
     name: '衣級洗衣坊 (永和店)',
@@ -223,6 +255,57 @@ const MOCK_LAUNDRY_DATA = [
         cost: 500,
       },
     ],
+  },
+];
+
+const LAUNDRY_USAGE_STEPS = [
+  {
+    title: '送洗時使用循環衣袋',
+    desc: '將衣物交給合作洗衣店時，可使用店家提供或已綁定的循環衣袋裝袋。',
+    icon: ShoppingBag,
+  },
+  {
+    title: '系統綁定衣袋編碼',
+    desc: '店家會把 BAG-xxxx 衣袋編碼綁定到本次送洗訂單，會員可即時查看。',
+    icon: QrCode,
+  },
+  {
+    title: '查看清洗進度',
+    desc: '會員可在洗衣服務專區查看清洗中、包裝中、待取件、完成取件等狀態。',
+    icon: Clock,
+  },
+  {
+    title: '取件後記得歸還',
+    desc: '取件後可於下次送洗時帶回，或依店家規則歸還至合作據點。',
+    icon: CheckCircle2,
+  },
+];
+
+const LAUNDRY_FAQS = [
+  {
+    question: '循環衣袋是什麼？',
+    answer:
+      '循環衣袋是可以重複使用的送洗包材，用來取代一次性塑膠袋，讓衣物從送洗、清洗、取件到歸還都能被追蹤。',
+  },
+  {
+    question: 'BAG-xxxx 跟 C-xxxx 差在哪？',
+    answer:
+      'BAG-xxxx 是循環衣袋編碼，代表「袋子」；C-xxxx 是衣物編號，代表「單件衣物」。一個衣袋裡可能會有多件衣物。',
+  },
+  {
+    question: '為什麼要綁定衣袋編碼？',
+    answer:
+      '綁定衣袋編碼後，系統可以知道這個衣袋目前在哪一筆訂單中，也能提醒會員是否還有未歸還的循環衣袋。',
+  },
+  {
+    question: '忘記歸還衣袋怎麼辦？',
+    answer:
+      '會員頁面會顯示未歸還提醒。下次送洗時把衣袋帶回合作洗衣店，店家確認後即可更新歸還狀態。',
+  },
+  {
+    question: '衣袋一定要馬上歸還嗎？',
+    answer:
+      '建議取件後盡快歸還，避免影響後續循環使用。如果店家有設定歸還期限，請依店家規定辦理。',
   },
 ];
 
@@ -580,44 +663,134 @@ const RedeemedListView = ({ setActiveTab, redeemedItems, showModal }: ViewProps)
   </div>
 );
 
-const LaundryServiceView = ({ setActiveTab }: ViewProps) => {
-  const [selectedStoreId, setSelectedStoreId] = useState(MOCK_LAUNDRY_DATA[0].id);
-  const storeData = MOCK_LAUNDRY_DATA.find((store) => store.id === selectedStoreId);
-  const PROGRESS_STEPS = ['清洗中', '包裝中', '待取件', '完成取件'];
+const LaundryServiceView = ({ setActiveTab, showModal }: ViewProps) => {
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(
+    MOCK_LAUNDRY_DATA[0].id,
+  );
 
-  const currentStepIndex = storeData?.currentOrder
-    ? PROGRESS_STEPS.indexOf(storeData.currentOrder.status)
+  const storeData =
+    MOCK_LAUNDRY_DATA.find((store) => store.id === selectedStoreId) ??
+    MOCK_LAUNDRY_DATA[0];
+
+  const PROGRESS_STEPS: LaundryOrderStatus[] = [
+    '清洗中',
+    '包裝中',
+    '待取件',
+    '完成取件',
+  ];
+
+  const currentOrder = storeData.currentOrder;
+
+  const currentStepIndex = currentOrder
+    ? PROGRESS_STEPS.indexOf(currentOrder.status)
     : -1;
 
-  const currentOrderTotal =
-    storeData?.currentOrder?.items.reduce((sum, item) => sum + item.price, 0) ?? 0;
+  const currentOrderTotal = currentOrder
+    ? currentOrder.items.reduce((sum, item) => sum + item.price, 0)
+    : 0;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-2">
+    <div className="space-y-5 pb-24">
+      <div className="flex items-center gap-3">
         <button
           onClick={() => setActiveTab('member')}
           className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition active:scale-95"
         >
-          <ChevronLeft />
+          <ChevronLeft size={24} />
         </button>
-        <h1 className="text-2xl font-bold text-gray-800">洗衣服務專區</h1>
+
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">洗衣服務專區</h1>
+          <p className="text-sm text-gray-500">
+            查看清洗進度、循環衣袋與使用說明
+          </p>
+        </div>
       </div>
 
-      <section className="bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-3xl p-5 shadow-md shadow-emerald-100">
+      <div className="bg-gradient-to-r from-emerald-500 to-green-600 rounded-3xl p-5 text-white shadow-lg shadow-emerald-100">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-            <Shirt />
+          <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+            <Shirt size={26} />
           </div>
+
           <div>
             <p className="text-sm text-emerald-50">合作洗衣服務</p>
             <h2 className="text-xl font-bold">查看清洗進度與循環衣袋</h2>
           </div>
         </div>
+      </div>
+
+      <section className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-4">
+          <BookOpen size={20} className="text-emerald-600" />
+          <h3 className="text-lg font-bold text-gray-900">衣袋使用說明</h3>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {LAUNDRY_USAGE_STEPS.map((step, index) => {
+            const Icon = step.icon;
+
+            return (
+              <div
+                key={step.title}
+                className="bg-emerald-50/70 rounded-2xl p-4 border border-emerald-100"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                    <Icon size={18} />
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-bold text-emerald-600 mb-1">
+                      STEP {index + 1}
+                    </p>
+                    <h4 className="font-bold text-gray-900 text-sm">
+                      {step.title}
+                    </h4>
+                    <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                      {step.desc}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-4">
+          <AlertCircle size={20} className="text-emerald-600" />
+          <h3 className="text-lg font-bold text-gray-900">常見問題 QA</h3>
+        </div>
+
+        <div className="space-y-3">
+          {LAUNDRY_FAQS.map((faq) => (
+            <button
+              key={faq.question}
+              onClick={() =>
+                showModal({
+                  title: faq.question,
+                  content: faq.answer,
+                  type: 'alert',
+                })
+              }
+              className="w-full bg-gray-50 hover:bg-gray-100 rounded-2xl p-4 text-left transition active:scale-[0.98] flex items-center justify-between gap-3"
+            >
+              <span className="font-semibold text-gray-800 text-sm">
+                {faq.question}
+              </span>
+              <BookOpen size={17} className="text-gray-400 shrink-0" />
+            </button>
+          ))}
+        </div>
       </section>
 
       <section>
-        <p className="text-sm font-semibold text-gray-600 mb-2">選擇合作洗衣店</p>
+        <p className="text-sm font-semibold text-gray-700 mb-2">
+          選擇合作洗衣店
+        </p>
+
         <div className="flex gap-2 overflow-x-auto pb-1">
           {MOCK_LAUNDRY_DATA.map((store) => (
             <button
@@ -635,191 +808,200 @@ const LaundryServiceView = ({ setActiveTab }: ViewProps) => {
         </div>
       </section>
 
-      {storeData && (
-        <>
-          <section className="grid grid-cols-2 gap-4">
-            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-              <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center mb-3">
-                <Wallet size={20} className="text-emerald-600" />
-              </div>
-              <p className="text-sm text-gray-500">店內儲值金</p>
-              <p className="text-2xl font-bold text-gray-800">
-                {formatCurrency(storeData.balance)}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
+            <Wallet size={17} />
+            店內儲值金
+          </div>
+          <p className="text-xl font-bold text-gray-900">
+            {formatCurrency(storeData.balance)}
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
+            <Leaf size={17} />
+            獲得配客點
+          </div>
+          <p className="text-xl font-bold text-emerald-600">
+            {storeData.storePoints} pt
+          </p>
+        </div>
+      </div>
+
+      {storeData.unreturnedBagCodes.length > 0 && (
+        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle size={20} className="text-amber-600 shrink-0 mt-0.5" />
+
+            <div>
+              <h4 className="font-bold text-amber-800">
+                未歸還循環衣袋提醒
+              </h4>
+              <p className="text-sm text-amber-700 mt-1 leading-relaxed">
+                您目前有 {storeData.unreturnedBagCodes.length}{' '}
+                個循環衣袋尚未歸還，下次送洗時記得帶回喔！
               </p>
-            </div>
 
-            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-              <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center mb-3">
-                <Leaf size={20} className="text-emerald-600" />
+              <div className="flex flex-wrap gap-2 mt-3">
+                {storeData.unreturnedBagCodes.map((code) => (
+                  <span
+                    key={code}
+                    className="bg-white border border-amber-200 text-amber-700 px-3 py-1 rounded-full text-xs font-bold"
+                  >
+                    {code}
+                  </span>
+                ))}
               </div>
-              <p className="text-sm text-gray-500">獲得配客點</p>
-              <p className="text-2xl font-bold text-gray-800">{storeData.storePoints} pt</p>
             </div>
-          </section>
+          </div>
+        </div>
+      )}
 
-          {storeData.unreturnedBagCodes.length > 0 && (
-            <section className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="font-bold text-amber-800">未歸還循環衣袋提醒</h4>
-                  <p className="text-sm text-amber-700 mt-1">
-                    您目前有 {storeData.unreturnedBagCodes.length} 個循環衣袋尚未歸還，下次送洗時記得帶回喔！
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {storeData.unreturnedBagCodes.map((code) => (
-                      <span
-                        key={code}
-                        className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-bold text-amber-700 border border-amber-200"
-                      >
-                        <Package size={14} />
-                        {code}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </section>
+      <section className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Package size={20} className="text-emerald-600" />
+            <h3 className="text-lg font-bold text-gray-900">當次送洗訂單</h3>
+          </div>
+
+          {currentOrder && (
+            <span className="text-xs bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full font-bold">
+              {currentOrder.status}
+            </span>
           )}
+        </div>
 
-          <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
-            <div className="flex items-center justify-between gap-3 mb-5">
-              <div>
-                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <Clock size={20} className="text-emerald-600" />
-                  當次送洗訂單
-                </h3>
-                {storeData.currentOrder && (
-                  <p className="text-sm text-gray-500 mt-1">#{storeData.currentOrder.id}</p>
-                )}
+        {currentOrder ? (
+          <>
+            <div className="bg-gray-50 rounded-2xl p-4 mb-5">
+              <p className="text-xs text-gray-500">訂單編號</p>
+              <p className="font-bold text-gray-900 mt-1">{currentOrder.id}</p>
+
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <p className="text-xs text-gray-500">本次循環衣袋編碼</p>
+                <p className="font-mono font-bold text-emerald-600 mt-1">
+                  {currentOrder.bagCode}
+                </p>
               </div>
-
-              {storeData.currentOrder && (
-                <span className="px-3 py-1 rounded-full text-sm font-bold bg-emerald-50 text-emerald-600">
-                  {storeData.currentOrder.status}
-                </span>
-              )}
             </div>
 
-            {storeData.currentOrder ? (
-              <>
-                <div className="mb-5 bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
-                  <div className="flex items-center justify-between gap-3">
+            <div className="mb-6">
+              <div className="flex items-start justify-between gap-2">
+                {PROGRESS_STEPS.map((step, index) => {
+                  const isActive = index <= currentStepIndex;
+                  const isCurrent = index === currentStepIndex;
+
+                  return (
+                    <div
+                      key={step}
+                      className="flex-1 flex flex-col items-center text-center relative"
+                    >
+                      {index < PROGRESS_STEPS.length - 1 && (
+                        <div
+                          className={`absolute top-4 left-1/2 w-full h-0.5 ${
+                            index < currentStepIndex
+                              ? 'bg-emerald-500'
+                              : 'bg-gray-200'
+                          }`}
+                        />
+                      )}
+
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold z-10 ${
+                          isActive
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-gray-200 text-gray-400'
+                        }`}
+                      >
+                        {isActive ? '✓' : index + 1}
+                      </div>
+
+                      <p
+                        className={`text-xs mt-2 font-medium ${
+                          isCurrent ? 'text-emerald-600' : 'text-gray-500'
+                        }`}
+                      >
+                        {step}
+                      </p>
+
+                      {step === '待取件' && currentOrder.status === '待取件' && (
+                        <p className="mt-1 text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-mono">
+                          {currentOrder.bagCode}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-bold text-gray-900">清潔衣物明細</h4>
+                <p className="text-sm text-gray-500">
+                  合計 {formatCurrency(currentOrderTotal)}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                {currentOrder.items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between bg-gray-50 rounded-2xl p-3"
+                  >
                     <div>
-                      <p className="text-sm text-emerald-700 font-semibold">本次循環衣袋編碼</p>
-                      <p className="text-xl font-black text-emerald-800 mt-1">
-                        {storeData.currentOrder.bagCode}
+                      <p className="font-semibold text-gray-800 text-sm">
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        衣物編號：{item.id}
                       </p>
                     </div>
-                    <Package className="text-emerald-600" size={34} />
-                  </div>
-                </div>
 
-                <div className="relative mb-7">
-                  <div className="absolute left-5 right-5 top-5 h-1 bg-gray-100 rounded-full" />
-                  <div
-                    className="absolute left-5 top-5 h-1 bg-emerald-500 rounded-full transition-all"
-                    style={{
-                      width: `${Math.max(0, (currentStepIndex / (PROGRESS_STEPS.length - 1)) * 100)}%`,
-                    }}
-                  />
-
-                  <div className="relative grid grid-cols-4 gap-2">
-                    {PROGRESS_STEPS.map((step, index) => {
-                      const isActive = index <= currentStepIndex;
-                      const isCurrent = index === currentStepIndex;
-
-                      return (
-                        <div key={step} className="text-center">
-                          <div
-                            className={`mx-auto w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 ${
-                              isActive
-                                ? 'bg-emerald-600 text-white border-emerald-600'
-                                : 'bg-white text-gray-400 border-gray-200'
-                            }`}
-                          >
-                            {isActive ? '✓' : index + 1}
-                          </div>
-
-                          <p
-                            className={`mt-2 text-xs font-semibold ${
-                              isCurrent ? 'text-emerald-700' : 'text-gray-500'
-                            }`}
-                          >
-                            {step}
-                          </p>
-
-                          {step === '待取件' && storeData.currentOrder.status === '待取件' && (
-                            <p className="mt-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 rounded-full px-2 py-1 inline-block">
-                              {storeData.currentOrder.bagCode}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-100 pt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-bold text-gray-800">清潔衣物明細</h4>
-                    <p className="text-sm font-bold text-emerald-600">
-                      合計 {formatCurrency(currentOrderTotal)}
+                    <p className="font-bold text-gray-900">
+                      {formatCurrency(item.price)}
                     </p>
                   </div>
-
-                  <div className="space-y-3">
-                    {storeData.currentOrder.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between gap-3 bg-gray-50 rounded-2xl p-3"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center">
-                            <Shirt size={18} className="text-emerald-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-800">{item.name}</p>
-                            <p className="text-xs text-gray-500">衣物編號：{item.id}</p>
-                          </div>
-                        </div>
-                        <p className="font-bold text-gray-700">{formatCurrency(item.price)}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <CheckCircle2 size={42} className="mx-auto text-gray-300 mb-3" />
-                <p className="text-gray-500">目前沒有進行中的送洗訂單</p>
+                ))}
               </div>
-            )}
-          </section>
-
-          <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
-            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-4">
-              <History size={20} className="text-emerald-600" />
-              歷次清洗紀錄
-            </h3>
-
-            <div className="space-y-3">
-              {storeData.history.map((record, index) => (
-                <div
-                  key={`${record.date}-${index}`}
-                  className="flex items-center justify-between border-b border-gray-50 last:border-b-0 pb-3 last:pb-0"
-                >
-                  <div>
-                    <p className="font-semibold text-gray-800">{record.desc}</p>
-                    <p className="text-sm text-gray-500">{record.date}</p>
-                  </div>
-                  <p className="font-bold text-gray-700">{formatCurrency(record.cost)}</p>
-                </div>
-              ))}
             </div>
-          </section>
-        </>
-      )}
+          </>
+        ) : (
+          <div className="text-center py-8 text-gray-400">
+            <Package size={36} className="mx-auto mb-2" />
+            <p className="text-sm">目前沒有進行中的送洗訂單</p>
+          </div>
+        )}
+      </section>
+
+      <section className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-4">
+          <History size={20} className="text-emerald-600" />
+          <h3 className="text-lg font-bold text-gray-900">歷次清洗紀錄</h3>
+        </div>
+
+        <div className="space-y-2">
+          {storeData.history.map((record, index) => (
+            <div
+              key={`${record.date}-${index}`}
+              className="flex items-center justify-between bg-gray-50 rounded-2xl p-3"
+            >
+              <div>
+                <p className="font-semibold text-gray-800 text-sm">
+                  {record.desc}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{record.date}</p>
+              </div>
+
+              <p className="font-bold text-gray-900">
+                {formatCurrency(record.cost)}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 };
