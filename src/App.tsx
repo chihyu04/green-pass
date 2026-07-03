@@ -22,6 +22,7 @@ import {
   ShoppingBag,
   History,
   AlertCircle,
+  ChevronRight,
 } from 'lucide-react';
 
 // --- Mock Data 靜態模擬資料 ---
@@ -164,7 +165,7 @@ const MOCK_HISTORY = {
   ],
 };
 
-// // --- 洗衣店專屬模擬資料 ---
+//// --- 洗衣店專屬模擬資料 ---
 type LaundryOrderStatus = '清洗中' | '包裝中' | '待取件' | '完成取件';
 
 interface LaundryItem {
@@ -668,6 +669,8 @@ const LaundryServiceView = ({ setActiveTab, showModal }: ViewProps) => {
     MOCK_LAUNDRY_DATA[0].id,
   );
 
+  const [showBagGuide, setShowBagGuide] = useState(false);
+
   const storeData =
     MOCK_LAUNDRY_DATA.find((store) => store.id === selectedStoreId) ??
     MOCK_LAUNDRY_DATA[0];
@@ -689,6 +692,98 @@ const LaundryServiceView = ({ setActiveTab, showModal }: ViewProps) => {
     ? currentOrder.items.reduce((sum, item) => sum + item.price, 0)
     : 0;
 
+  if (showBagGuide) {
+    return (
+      <div className="space-y-5 pb-24">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowBagGuide(false)}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition active:scale-95"
+          >
+            <ChevronLeft size={24} />
+          </button>
+
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              衣袋使用說明
+            </h1>
+            <p className="text-sm text-gray-500">
+              認識循環衣袋、衣袋編碼與歸還方式
+            </p>
+          </div>
+        </div>
+
+        <section className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen size={20} className="text-emerald-600" />
+            <h3 className="text-lg font-bold text-gray-900">
+              衣袋使用說明
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {LAUNDRY_USAGE_STEPS.map((step, index) => {
+              const Icon = step.icon;
+
+              return (
+                <div
+                  key={step.title}
+                  className="bg-emerald-50/70 rounded-2xl p-4 border border-emerald-100"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                      <Icon size={18} />
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-bold text-emerald-600 mb-1">
+                        STEP {index + 1}
+                      </p>
+                      <h4 className="font-bold text-gray-900 text-sm">
+                        {step.title}
+                      </h4>
+                      <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                        {step.desc}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertCircle size={20} className="text-emerald-600" />
+            <h3 className="text-lg font-bold text-gray-900">常見問題 QA</h3>
+          </div>
+
+          <div className="space-y-3">
+            {LAUNDRY_FAQS.map((faq) => (
+              <button
+                key={faq.question}
+                onClick={() =>
+                  showModal({
+                    title: faq.question,
+                    content: faq.answer,
+                    type: 'alert',
+                  })
+                }
+                className="w-full bg-gray-50 hover:bg-gray-100 rounded-2xl p-4 text-left transition active:scale-[0.98] flex items-center justify-between gap-3"
+              >
+                <span className="font-semibold text-gray-800 text-sm">
+                  {faq.question}
+                </span>
+                <BookOpen size={17} className="text-gray-400 shrink-0" />
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5 pb-24">
       <div className="flex items-center gap-3">
@@ -707,84 +802,30 @@ const LaundryServiceView = ({ setActiveTab, showModal }: ViewProps) => {
         </div>
       </div>
 
-      <div className="bg-gradient-to-r from-emerald-500 to-green-600 rounded-3xl p-5 text-white shadow-lg shadow-emerald-100">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-            <Shirt size={26} />
+      <button
+        onClick={() => setShowBagGuide(true)}
+        className="w-full bg-gradient-to-r from-emerald-500 to-green-600 rounded-3xl p-5 text-white shadow-lg shadow-emerald-100 transition active:scale-[0.98] hover:shadow-xl"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 text-left">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+              <Shirt size={26} />
+            </div>
+
+            <div>
+              <p className="text-sm text-emerald-50">合作洗衣服務</p>
+              <h2 className="text-xl font-bold">
+                衣袋使用說明與常見問題
+              </h2>
+              <p className="text-xs text-emerald-50 mt-1">
+                點我查看
+              </p>
+            </div>
           </div>
 
-          <div>
-            <p className="text-sm text-emerald-50">合作洗衣服務</p>
-            <h2 className="text-xl font-bold">查看清洗進度與循環衣袋</h2>
-          </div>
+          <ChevronRight size={24} className="text-white/80 shrink-0" />
         </div>
-      </div>
-
-      <section className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
-        <div className="flex items-center gap-2 mb-4">
-          <BookOpen size={20} className="text-emerald-600" />
-          <h3 className="text-lg font-bold text-gray-900">衣袋使用說明</h3>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {LAUNDRY_USAGE_STEPS.map((step, index) => {
-            const Icon = step.icon;
-
-            return (
-              <div
-                key={step.title}
-                className="bg-emerald-50/70 rounded-2xl p-4 border border-emerald-100"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                    <Icon size={18} />
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold text-emerald-600 mb-1">
-                      STEP {index + 1}
-                    </p>
-                    <h4 className="font-bold text-gray-900 text-sm">
-                      {step.title}
-                    </h4>
-                    <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                      {step.desc}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
-        <div className="flex items-center gap-2 mb-4">
-          <AlertCircle size={20} className="text-emerald-600" />
-          <h3 className="text-lg font-bold text-gray-900">常見問題 QA</h3>
-        </div>
-
-        <div className="space-y-3">
-          {LAUNDRY_FAQS.map((faq) => (
-            <button
-              key={faq.question}
-              onClick={() =>
-                showModal({
-                  title: faq.question,
-                  content: faq.answer,
-                  type: 'alert',
-                })
-              }
-              className="w-full bg-gray-50 hover:bg-gray-100 rounded-2xl p-4 text-left transition active:scale-[0.98] flex items-center justify-between gap-3"
-            >
-              <span className="font-semibold text-gray-800 text-sm">
-                {faq.question}
-              </span>
-              <BookOpen size={17} className="text-gray-400 shrink-0" />
-            </button>
-          ))}
-        </div>
-      </section>
+      </button>
 
       <section>
         <p className="text-sm font-semibold text-gray-700 mb-2">
